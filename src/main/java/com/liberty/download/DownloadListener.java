@@ -10,7 +10,7 @@ package com.liberty.download;
 public interface DownloadListener {
     void updateProgress(long progress, long totalSize);
 
-    void onSuccess();
+    void onSuccess(String fileName);
 
     void onFaile(String msg);
 

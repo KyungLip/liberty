@@ -8,7 +8,6 @@ import android.util.Log;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonIOException;
-import com.google.gson.JsonParseException;
 import com.google.gson.JsonSyntaxException;
 import com.liberty.exception.RemoteException;
 
@@ -36,18 +35,14 @@ public class DefaultParser<T> implements IApiResultParseable<T> {
             return null;
         }
         try {
-
             responseModel = new Gson().fromJson(response, tClass);
+            if (responseModel == null) return null;
             Log.d(TAG, "DefaultParser:" + responseModel.toString());
             return responseModel;
-        } catch (JsonSyntaxException e) {
+        } catch (JsonSyntaxException | IllegalArgumentException e) {
             throw new JSONException(e.getMessage());
         } catch (JsonIOException e) {
             throw new IOException(e.getMessage());
-        } catch (JsonParseException e) {
-            throw new JSONException(e.getMessage());
-        } catch (IllegalArgumentException e) {
-            throw new JSONException(e.getMessage());
         }
     }
 }

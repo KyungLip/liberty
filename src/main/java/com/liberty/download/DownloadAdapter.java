@@ -14,7 +14,7 @@ public class DownloadAdapter implements DownloadListener {
     }
 
     @Override
-    public void onSuccess() {
+    public void onSuccess(String fileName) {
 
     }
 

@@ -12,6 +12,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
+import java.util.HashMap;
 
 import okhttp3.ResponseBody;
 import retrofit2.Call;
@@ -27,14 +28,35 @@ import retrofit2.Response;
  */
 public class LibertyDownload {
     private static final String TAG = "LibertyDownload";
-    private BufferedInputStream bis;
 
+    private static HashMap<String, DownLoadTask> maps = new HashMap();
+
+    protected static void removeTask(String md5) {
+        if (!TextUtils.isEmpty(md5) && maps.containsKey(md5)) {
+            maps.remove(md5);
+        }
+    }
+
+    public static DownLoadTask download(String url, String path, String name, DownloadAdapter listener) {
+        if (TextUtils.isEmpty(url) || TextUtils.isEmpty(path) || TextUtils.isEmpty(name)) {
+            return null;
+        }
+        String md5Str = MD5Util.createMD5Str(url);
+        if (TextUtils.isEmpty(md5Str) || maps.containsKey(md5Str)) {//说明有相同的任务正在执行
+            return null;
+        }
+        DownLoadTask task = new DownLoadTask(url, path, name, md5Str, listener);
+        maps.put(md5Str, task);
+        task.start();
+        return task;
+    }
 
     public static boolean downloadFileSyncProgress(String url, String path, String name, DownloadListener listener) throws IOException {
         ApiService apiService = Liberty.create(ApiService.class);
         Call<ResponseBody> call = apiService.get(url);
         Response<ResponseBody> response = call.execute();
-        return writeToDisk(path, name, response.body(), listener);
+        boolean writeToDisk = writeToDisk(path, name, response.body(), listener);
+        return writeToDisk;
     }
 
     public boolean downloadFileSync(String url, String path, String name) throws IOException {
@@ -54,7 +76,8 @@ public class LibertyDownload {
         String range = "bytes=" + downLength + "-";
         Call<ResponseBody> call = apiService.downBigFile(range, url);
         Response<ResponseBody> response = call.execute();
-        return writeToDiskRanAc(path, name, response.body(), listener);
+        boolean writeToDisk = writeToDiskRanAc(path, name, response.body(), listener);
+        return writeToDisk;
     }
 
     public static void downloadBigFileAsync(String url, final String path, final String name, final DownloadListener listener) {
@@ -63,14 +86,7 @@ public class LibertyDownload {
         call.enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                boolean writeToDisk = writeToDisk(path, name, response.body(), listener);
-                if (listener != null) {
-                    if (writeToDisk) {
-                        listener.onSuccess();
-                    } else {
-                        listener.onFaile("下载出错!");
-                    }
-                }
+                writeToDisk(path, name, response.body(), listener);
             }
 
             @Override
@@ -111,10 +127,14 @@ public class LibertyDownload {
                 }
             }
             fos.flush();
+            if (listener != null) {
+                listener.onSuccess(file.getName());
+            }
             return true;
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
+            if (listener != null) {
+                listener.onFaile("下载出错!");
+            }
             e.printStackTrace();
         } finally {
             try {
@@ -127,6 +147,9 @@ public class LibertyDownload {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        }
+        if (listener != null) {
+            listener.onFaile("下载出错!");
         }
         return false;
     }

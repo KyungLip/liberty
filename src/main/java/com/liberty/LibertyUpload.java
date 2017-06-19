@@ -1,6 +1,7 @@
 package com.liberty;
 
 
+import android.util.ArrayMap;
 
 import com.liberty.parser.DefaultParser;
 
@@ -20,11 +21,25 @@ import retrofit2.Call;
  * Description:
  */
 public class LibertyUpload {
-    public String uploadFile(String url, String descr, String filename, File file) throws IOException {
+    public static String uploadFile(String url, String descr, String filename, File file) throws IOException {
         ApiService apiService = Liberty.create(ApiService.class);
         MultipartBody.Part part = MultiPartBodyUtil.createMultiPart(descr, filename, file);
         RequestBody description = RequestBodyUtil.createMultiBody(descr);
         Call<ResponseBody> call = apiService.uploadFile(url, description, part);
+        try {
+            return new NetworkTask<String>().send(call, new DefaultParser(String.class));
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    public static String uploadFiles(String url, String descr, String filename, File file) throws IOException {
+        ApiService apiService = Liberty.create(ApiService.class);
+        ArrayMap<String, RequestBody> map = new ArrayMap<>();
+        MultipartBody.Part part = MultiPartBodyUtil.createMultiPart(descr, filename, file);
+        RequestBody description = RequestBodyUtil.createMultiBody(descr);
+        RequestBody requestBody = RequestBodyUtil.createMultiPartBody(file);
+        Call<ResponseBody> call = apiService.uploadFiles(url, map);
         try {
             return new NetworkTask<String>().send(call, new DefaultParser(String.class));
         } catch (Exception e) {

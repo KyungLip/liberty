@@ -56,7 +56,10 @@ public class NetworkTask<T> {
         try {
             response = call.execute();
         } catch (IOException e) {
-            int a = 0;
+            Log.e(TAG, e.toString());
+        }
+        if (response == null) {
+            return null;
         }
 //        try {
 //            Log.d(TAG, "返回的数据Reponse:" + response.body().contentLength() + ":" + response.toString() + "---Body---:" + response.body().toString() + "---errbody---:" + response.errorBody().toString());
@@ -76,9 +79,13 @@ public class NetworkTask<T> {
         }
         T result = null;
         IApiResultParseable<T> parser = requestAndParser;
-        if (parser != null) {
-            // 调用解析器对response解析
-            result = parser.parse(response.body().string());
+        try {
+            if (parser != null && response != null) {
+                // 调用解析器对response解析
+                result = parser.parse(response.body().string());
+            }
+        } catch (Exception e) {
+            Log.e(TAG, e.toString());
         }
         return result;
     }

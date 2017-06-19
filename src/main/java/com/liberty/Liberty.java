@@ -152,22 +152,32 @@ public class Liberty {
 
     public static <T> T get(String url, Class<T> t) throws IOException, RemoteException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyManagementException, JSONException, KeyStoreException {
         Call<ResponseBody> call = apiService.get(url);
-        return new NetworkTask<T>().send(call, new DefaultParser(t));
+        return new NetworkTask<T>().send(call, new DefaultParser<>(t));
     }
 
     public static <T> T get(String url, Map<String, String> params, Class<T> t) throws IOException, RemoteException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyManagementException, JSONException, KeyStoreException {
         Call<ResponseBody> call = apiService.buildBodyGetCall(url, params);
-        return new NetworkTask<T>().send(call, new DefaultParser(t));
+        return new NetworkTask<T>().send(call, new DefaultParser<>(t));
+    }
+
+    public static <T> T getWithHeader(String url, Map<String, String> params, Class<T> t) throws IOException, RemoteException, JSONException {
+        Call<ResponseBody> call = apiService.getWithHeaderNoParamCall(url, params);
+        return new NetworkTask<T>().send(call, new DefaultParser<>(t));
+    }
+
+    public static <T> T getWithHeaderAndParm(String url, Map<String, String> header, Map<String, String> params, Class<T> t) throws IOException, RemoteException, JSONException {
+        Call<ResponseBody> call = apiService.getWithHeaderHasParamCall(url, header, params);
+        return new NetworkTask<T>().send(call, new DefaultParser<>(t));
     }
 
     public static <T> T post(String url, Object o, Class<T> t) throws RemoteException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyManagementException, JSONException, KeyStoreException, IOException {
         RequestBody body = RequestBodyUtil.createJsonBody(o);
         Call<ResponseBody> call = apiService.buildBodyPostCall(url, body);
-        return new NetworkTask<T>().send(call, new DefaultParser(t));
+        return new NetworkTask<T>().send(call, new DefaultParser<>(t));
     }
 
     public static <T> T postForm(String url, Map<String, String> params, Class<T> t) throws RemoteException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyManagementException, JSONException, KeyStoreException, IOException {
         Call<ResponseBody> call = apiService.buildFiledsPostCall(url, params);
-        return new NetworkTask<T>().send(call, new DefaultParser(t));
+        return new NetworkTask<T>().send(call, new DefaultParser<>(t));
     }
 }

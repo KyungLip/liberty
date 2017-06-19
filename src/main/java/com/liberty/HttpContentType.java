@@ -11,7 +11,7 @@ public class HttpContentType {
     /**
      * 支持JSON
      */
-    public static final String CONTENT_TYPE_APPLICATION_JSON = "Content-Type,application/json;charset=UTF-8";
+    public static final String CONTENT_TYPE_APPLICATION_JSON = "Content-Type,pplication/json;charset=utf-8";
     /**
      * 支持文件数据传递
      */
