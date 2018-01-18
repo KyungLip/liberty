@@ -100,7 +100,7 @@ public class DeviceInfo {
      * 判断是否是小米系统的手机
      */
     public static boolean isXiaomiDevice() {
-        Log.v(TAG, "build.version=" + Build.VERSION.RELEASE);
+        Logger.d(TAG, "build.version=" + Build.VERSION.RELEASE);
         return Build.VERSION.RELEASE.toLowerCase().contains("miui");
     }
 
@@ -160,9 +160,9 @@ public class DeviceInfo {
                 }
             }
         } catch (SocketException ex) {
-            Log.e(TAG, "WifiPreference IpAddress", ex);
+            Logger.e(TAG, "WifiPreference IpAddress", ex);
         } catch (Exception e) {
-            Log.e(TAG, "WifiPreference IpAddress", e);
+            Logger.e(TAG, "WifiPreference IpAddress", e);
         }
 
         return "";

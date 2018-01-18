@@ -1,6 +1,7 @@
 package com.liberty.download;
 
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.liberty.ApiService;
 import com.liberty.Liberty;
@@ -37,7 +38,7 @@ public class LibertyDownload {
         }
     }
 
-    public static DownLoadTask download(String url, String path, String name, DownloadAdapter listener) {
+    public static DownLoadTask download(String baseUrl, String url, String path, String name, DownloadAdapter listener) {
         if (TextUtils.isEmpty(url) || TextUtils.isEmpty(path) || TextUtils.isEmpty(name)) {
             return null;
         }
@@ -45,26 +46,27 @@ public class LibertyDownload {
         if (TextUtils.isEmpty(md5Str) || maps.containsKey(md5Str)) {//说明有相同的任务正在执行
             return null;
         }
-        DownLoadTask task = new DownLoadTask(url, path, name, md5Str, listener);
+        DownLoadTask task = new DownLoadTask(baseUrl, url, path, name, md5Str, listener);
         maps.put(md5Str, task);
         task.start();
         return task;
     }
 
-    public static boolean downloadFileSyncProgress(String url, String path, String name, DownloadListener listener) throws IOException {
-        ApiService apiService = Liberty.create(ApiService.class);
+    public static boolean downloadFileSyncProgress(String baseUrl, String url, String path, String name, DownloadListener listener) throws IOException {
+        ApiService apiService = new Liberty.Builders().baseUrl(baseUrl).build().create(ApiService.class);
         Call<ResponseBody> call = apiService.get(url);
         Response<ResponseBody> response = call.execute();
         boolean writeToDisk = writeToDisk(path, name, response.body(), listener);
         return writeToDisk;
     }
 
-    public boolean downloadFileSync(String url, String path, String name) throws IOException {
-        return downloadFileSyncProgress(url, path, name, null);
+
+    public static boolean downloadFileSync(String baseUrl, String url, String path, String name) throws IOException {
+        return downloadFileSyncProgress(baseUrl, url, path, name, null);
     }
 
-    public static boolean downloadFileBreakPoint(String url, String path, String name, DownloadAdapter listener) throws IOException {
-        ApiService apiService = Liberty.create(ApiService.class);
+    public static boolean downloadFileBreakPoint(String baseUrl,String url, String path, String name, DownloadAdapter listener) throws IOException {
+        ApiService apiService = new Liberty.Builders().baseUrl(baseUrl).build().create(ApiService.class);
         File fileDir = new File(path);
         if (!fileDir.exists()) {
             fileDir.mkdirs();
@@ -76,12 +78,11 @@ public class LibertyDownload {
         String range = "bytes=" + downLength + "-";
         Call<ResponseBody> call = apiService.downBigFile(range, url);
         Response<ResponseBody> response = call.execute();
-        boolean writeToDisk = writeToDiskRanAc(path, name, response.body(), listener);
-        return writeToDisk;
+        return writeToDiskRanAc(path, name, response.body(), listener);
     }
 
-    public static void downloadBigFileAsync(String url, final String path, final String name, final DownloadListener listener) {
-        ApiService apiService = Liberty.create(ApiService.class);
+    public static void downloadBigFileAsync(String baseUrl, String url, final String path, final String name, final DownloadListener listener) {
+        ApiService apiService = new Liberty.Builders().baseUrl(baseUrl).build().create(ApiService.class);
         Call<ResponseBody> call = apiService.downBigFile(url);
         call.enqueue(new Callback<ResponseBody>() {
             @Override
@@ -154,7 +155,7 @@ public class LibertyDownload {
         return false;
     }
 
-    public static boolean writeToDiskRanAc(String path, String fileName, ResponseBody body, DownloadListener listener) {
+    private static boolean writeToDiskRanAc(String path, String fileName, ResponseBody body, DownloadListener listener) {
         if (TextUtils.isEmpty(path)) {
             return false;
         }
@@ -190,12 +191,9 @@ public class LibertyDownload {
                     listener.updateProgress(alreadyDownload, fileSize);
                 }
             }
-
             return true;
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            Log.e(TAG, e.toString());
         } finally {
             try {
                 if (rw != null) {

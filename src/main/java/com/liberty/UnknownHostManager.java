@@ -65,10 +65,10 @@ public class UnknownHostManager {
             process = Runtime.getRuntime().exec("ping -c 1 -w 2 " + domain);
             status = process.waitFor();
         } catch (IOException | InterruptedException e) {
-            Log.e("ServerURL", "ping域名 " + domain + " 异常: " + e.getMessage());
+            Logger.e("ServerURL", "ping域名 " + domain + " 异常: " + e.getMessage());
         }
         if (status != 0) {
-            Log.e("ServerURL", domain + " ping不通");
+            Logger.e("ServerURL", domain + " ping不通");
         }
         return status == 0;
     }

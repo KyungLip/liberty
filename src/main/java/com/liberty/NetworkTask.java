@@ -15,6 +15,7 @@ import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
+import java.util.NoSuchElementException;
 
 import okhttp3.ResponseBody;
 import retrofit2.Call;
@@ -46,46 +47,36 @@ public class NetworkTask<T> {
     @SuppressWarnings("unchecked")
     public T send(Call<ResponseBody> call, IApiResultParseable requestAndParser) throws
             JSONException, RemoteException, IOException {
-
         // 如果bduss为空就取消前一次操作，停止当前操作
         if (call == null) {
-            Log.v(TAG, "call == null");
+            Logger.d(TAG, "call == null");
             return null;
         }
         Response<ResponseBody> response = null;
+        T result = null;
         try {
             response = call.execute();
-        } catch (IOException e) {
-            Log.e(TAG, e.toString());
-        }
-        if (response == null) {
-            return null;
-        }
-//        try {
-//            Log.d(TAG, "返回的数据Reponse:" + response.body().contentLength() + ":" + response.toString() + "---Body---:" + response.body().toString() + "---errbody---:" + response.errorBody().toString());
-//        } catch (IllegalArgumentException e) {
-//            Log.w(TAG, "请求参数错误", e);
-//            throw new IOException("url IllegalArgumentException");
-//        }
-        try {
+            if (response == null) {
+                return null;
+            }
             // 获取http响应代码
             final int statusCode = response.code();
             if (statusCode != HttpURLConnection.HTTP_OK) {
                 // 错误的http请求
-                Log.e(TAG, "server statusCode=" + statusCode);
+                Logger.e(TAG, "server statusCode=" + statusCode);
             }
-        } catch (Exception e) {
-            Log.e(TAG, e.toString(), e);
-        }
-        T result = null;
-        IApiResultParseable<T> parser = requestAndParser;
-        try {
+
+            IApiResultParseable<T> parser = requestAndParser;
+
             if (parser != null && response != null) {
                 // 调用解析器对response解析
                 result = parser.parse(response.body().string());
             }
+        } catch (JSONException | RemoteException | IOException e) {
+            Logger.e(TAG, e.toString());
+            throw e;
         } catch (Exception e) {
-            Log.e(TAG, e.toString());
+            Logger.e(TAG, e.toString());
         }
         return result;
     }

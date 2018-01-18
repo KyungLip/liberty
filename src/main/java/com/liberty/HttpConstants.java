@@ -11,11 +11,11 @@ public class HttpConstants {
     /**
      * 连接超时时间 Connection time out.
      */
-    public static final int CONN_TIME_OUT = 3000;//millisecond毫秒
+    public static final long CONN_TIME_OUT = 30000L;//millisecond毫秒
     /**
      * 读取超时时间 Read time out.
      */
-    public static final int READ_TIME_OUT = 3000;//millisecond毫秒
+    public static final long READ_TIME_OUT = 30000L;//millisecond毫秒
     /**
      * 网盘请求认证字段BDUSS TAG
      */

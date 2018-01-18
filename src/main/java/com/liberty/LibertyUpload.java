@@ -1,12 +1,12 @@
 package com.liberty;
 
 
-import android.util.ArrayMap;
 
 import com.liberty.parser.DefaultParser;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
@@ -21,8 +21,8 @@ import retrofit2.Call;
  * Description:
  */
 public class LibertyUpload {
-    public static String uploadFile(String url, String descr, String filename, File file) throws IOException {
-        ApiService apiService = Liberty.create(ApiService.class);
+    public static String uploadFile(String baseUrl, String url, String descr, String filename, File file) throws IOException {
+        ApiService apiService = new Liberty.Builders().baseUrl(baseUrl).build().create(ApiService.class);
         MultipartBody.Part part = MultiPartBodyUtil.createMultiPart(descr, filename, file);
         RequestBody description = RequestBodyUtil.createMultiBody(descr);
         Call<ResponseBody> call = apiService.uploadFile(url, description, part);
@@ -33,9 +33,9 @@ public class LibertyUpload {
         }
     }
 
-    public static String uploadFiles(String url, String descr, String filename, File file) throws IOException {
-        ApiService apiService = Liberty.create(ApiService.class);
-        ArrayMap<String, RequestBody> map = new ArrayMap<>();
+    public static String uploadFiles(String baseUrl, String url, String descr, String filename, File file) throws IOException {
+        ApiService apiService = new Liberty.Builders().baseUrl(baseUrl).build().create(ApiService.class);
+        HashMap<String, RequestBody> map = new HashMap<>();
         MultipartBody.Part part = MultiPartBodyUtil.createMultiPart(descr, filename, file);
         RequestBody description = RequestBodyUtil.createMultiBody(descr);
         RequestBody requestBody = RequestBodyUtil.createMultiPartBody(file);
