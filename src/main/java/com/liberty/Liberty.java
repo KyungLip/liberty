@@ -1,7 +1,5 @@
 package com.liberty;
 
-import android.util.Log;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.liberty.exception.RemoteException;
@@ -29,7 +27,6 @@ import javax.net.ssl.X509TrustManager;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.OkHttpClient.Builder;
-import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
 import okhttp3.logging.HttpLoggingInterceptor;
@@ -100,7 +97,7 @@ public class Liberty {
         }
 
         private OkHttpClient initOkHttpClient() {
-            Builder okBuilder = new Builder(); 
+            Builder okBuilder = new Builder();
             okBuilder = getUnsafeOkHttpBuilder(okBuilder);
             okBuilder.connectTimeout(connectTimeout, TimeUnit.MILLISECONDS);
             okBuilder.readTimeout(readTimeout, TimeUnit.MILLISECONDS);
@@ -109,16 +106,7 @@ public class Liberty {
                 interceptors.clear();//如果OkHttpClient已经设置了拦截器那么清空。
             }
             if (Logger.isDebug()) {
-                okBuilder.addInterceptor(new Interceptor() {
-                    @Override
-                    public okhttp3.Response intercept(Chain chain) throws IOException {
-                        Request request = chain.request();
-//                String url = request.url().encodedPath();
-                        Logger.d(TAG, "请求的URL:" + ":" + request.url().toString());
-                        Logger.d(TAG, "请求:" + request.toString());
-                        return chain.proceed(request);
-                    }
-                });
+                okBuilder.addInterceptor(new RetryInterceptor());
                 HttpLoggingInterceptor logger = new HttpLoggingInterceptor();
                 logger.setLevel(HttpLoggingInterceptor.Level.BODY);
                 okBuilder.addInterceptor(logger);
@@ -205,6 +193,18 @@ public class Liberty {
 
     public <T> T postForm(String url, Map<String, String> params, Class<T> t) throws RemoteException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyManagementException, JSONException, KeyStoreException, IOException {
         Call<ResponseBody> call = apiService.buildFiledsPostCall(url, params);
+        return new NetworkTask<T>().send(call, new DefaultParser<>(t));
+    }
+
+    public <T> T postWithEncoding(String url, String encodingType, byte[] bytes, Class<T> t) throws IOException, RemoteException, JSONException {
+        RequestBody body = RequestBodyUtil.createBytesBody(bytes);
+        Call<ResponseBody> call = apiService.postWithHeaderEncoding(url, encodingType, body);
+        return new NetworkTask<T>().send(call, new DefaultParser<>(t));
+    }
+
+    public <T> T postWithHeader(String url, Map<String, String> headers, Object o, Class<T> t) throws IOException, RemoteException, JSONException {
+        RequestBody body = RequestBodyUtil.createJsonBody(o);
+        Call<ResponseBody> call = apiService.postWithHeader(url, headers, body);
         return new NetworkTask<T>().send(call, new DefaultParser<>(t));
     }
 }

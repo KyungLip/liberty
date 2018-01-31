@@ -8,7 +8,6 @@ import com.liberty.Liberty;
 
 import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -65,7 +64,7 @@ public class LibertyDownload {
         return downloadFileSyncProgress(baseUrl, url, path, name, null);
     }
 
-    public static boolean downloadFileBreakPoint(String baseUrl,String url, String path, String name, DownloadAdapter listener) throws IOException {
+    public static boolean downloadFileBreakPoint(String baseUrl, String url, String path, String name, DownloadAdapter listener) throws IOException {
         ApiService apiService = new Liberty.Builders().baseUrl(baseUrl).build().create(ApiService.class);
         File fileDir = new File(path);
         if (!fileDir.exists()) {

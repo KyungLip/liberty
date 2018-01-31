@@ -23,8 +23,10 @@ public class RequestBodyUtil {
      * @return RequestBody
      */
     public static RequestBody createJsonBody(String jsonStr) {
+
         return RequestBody.create(MediaType.parse(HttpContentType.CONTENT_TYPE_APPLICATION_JSON), jsonStr);
     }
+
     /**
      * 根据给定的字符串创建请求体
      *
@@ -34,6 +36,7 @@ public class RequestBodyUtil {
     public static RequestBody createMultiBody(String str) {
         return RequestBody.create(MediaType.parse(HttpContentType.CONTENT_TYPE_APPLICATION_MULTIPART_FORMDATA), str);
     }
+
     /**
      * 根据给定的对象创建请求体
      *
@@ -49,6 +52,16 @@ public class RequestBodyUtil {
      * @return RequestBody
      */
     public static RequestBody createMultiPartBody(File file) {
-        return RequestBody.create(MediaType.parse(HttpContentType.CONTENT_TYPE_APPLICATION_MULTIPART_FORMDATA),file);
+        return RequestBody.create(MediaType.parse(HttpContentType.CONTENT_TYPE_APPLICATION_MULTIPART_FORMDATA), file);
+    }
+
+    /**
+     * 根据给定的对象创建请求体
+     *
+     * @param bytes byte[]对象
+     * @return RequestBody
+     */
+    public static RequestBody createBytesBody(byte[] bytes) {
+        return RequestBody.create(MediaType.parse(HttpContentType.CONTENT_TYPE_APPLICATION_BYTES), bytes);
     }
 }

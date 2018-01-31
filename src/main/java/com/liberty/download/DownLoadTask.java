@@ -1,10 +1,10 @@
 package com.liberty.download;
 
 import android.text.TextUtils;
-import android.util.Log;
 
 import com.liberty.ApiService;
 import com.liberty.Liberty;
+import com.liberty.Logger;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -35,6 +35,7 @@ public class DownLoadTask extends Thread {
     private String name;
     private DownloadAdapter listener;
     private String baseUrl;
+    private String lengthFileName;
 
     DownLoadTask(String baseUrl, String url, String path, String name, String md5Str, DownloadAdapter listener) {
         this.baseUrl = baseUrl;
@@ -44,32 +45,31 @@ public class DownLoadTask extends Thread {
         this.md5Str = md5Str;
         this.listener = listener;
         isDownload.set(true);
-        MD5Util.createMD5Str(url);
+        lengthFileName = md5Str + ".txt";
     }
 
     @Override
     public void run() {
-        File file = null;
-        RandomAccessFile rw = null;
-        BufferedReader bufferedReader = null;
+        if (isRunning.get()) return;
+        isRunning.set(true);
+        File downloadFile;
         ResponseBody responseBody = null;
+        long fileSize;
         try {
-            if (isRunning.get()) return;
-            isRunning.set(true);
             if (TextUtils.isEmpty(path) || TextUtils.isEmpty(url) || TextUtils.isEmpty(name) || TextUtils.isEmpty(md5Str)) {
-                if (listener != null) {
-                    listener.onFaile(path + name + "");
-                }
                 LibertyDownload.removeTask(md5Str);
+                if (listener != null) {
+                    listener.onFaile(path + name);
+                }
                 return;
             }
-            ApiService apiService = new Liberty.Builders().baseUrl(baseUrl).build().create(ApiService.class);
+            ApiService apiService = new Liberty.Builders().connectTimeout(60 * 1000L).readimeout(60 * 1000L).baseUrl(baseUrl).build().create(ApiService.class);
             File fileDir = new File(path);
             if (!fileDir.exists()) {
                 fileDir.mkdirs();
             }
-            file = new File(fileDir, name);
-            String md5Digest = MD5Util.getMD5Digest(file.getPath());
+            downloadFile = new File(fileDir, name);
+            String md5Digest = MD5Util.getMD5Digest(downloadFile.getPath());
             if (md5Str.equalsIgnoreCase(md5Digest)) {
                 if (listener != null) {
                     listener.onSuccess(path + name);
@@ -77,64 +77,47 @@ public class DownLoadTask extends Thread {
                 }
                 return;
             }
-
             long downLength = 0;
-            File lengthFile = null;
-            if (!file.exists()) {//文件不存在
+            if (!downloadFile.exists()) {//文件不存在
                 responseBody = apiService.downBigFile(url).execute().body();
-                rw = new RandomAccessFile(file, "rw");
-                rw.setLength(responseBody.contentLength());
-                rw.close();
+                fileSize = responseBody.contentLength();
+                Logger.d(TAG, "视频文件不存在！");
             } else {//文件存在
-                lengthFile = new File(path, md5Str + ".txt");
-                if (lengthFile.exists()) {
-                    bufferedReader = new BufferedReader(new FileReader(lengthFile));
-                    String readLine = bufferedReader.readLine();
-                    if (!TextUtils.isEmpty(readLine)) {
-                        downLength = Long.parseLong(readLine);
-                    }
+                fileSize = downloadFile.length();
+                Logger.d(TAG, "视频文件存在！" + fileSize);
+                File lengthFile = new File(path, lengthFileName);
+                downLength = readDownloadedLength(lengthFile);
+                if (downLength > fileSize) {
+                    downLength = 0;
+                    delFile(lengthFile);
+                    delFile(downloadFile);
                 }
-                if (downLength > file.length()) {
-                    if (lengthFile.exists()) {
-                        lengthFile.delete();
-                    }
-                    if (file.exists()) {
-                        file.delete();
-                    }
-                }
-                String range = "bytes=" + downLength + "-";
+                Logger.d(TAG, "读取到的下载进度:" + downLength);
+                String range = "bytes=" + downLength + "-" + fileSize;
                 responseBody = apiService.downBigFile(range, url).execute().body();
             }
-            boolean writeToDisk = writeToDiskRanAc(path, name, downLength, responseBody, listener);
+            boolean writeToDisk = writeToDiskRanAc(path, name, downLength, fileSize, responseBody, listener);
             if (listener != null) {
                 if (writeToDisk) {
                     listener.onSuccess(path + name);
-                    if (lengthFile != null) {
-                        lengthFile.delete();
-                    }
                 } else {
                     listener.onFaile(path + name);
                 }
-                LibertyDownload.removeTask(md5Str);
             }
         } catch (Exception e) {
             if (listener != null) {
                 listener.onFaile(path + name);
             }
-            LibertyDownload.removeTask(md5Str);
+            Logger.d(TAG, e.toString());
         } finally {
             try {
+                isRunning.set(false);
+                LibertyDownload.removeTask(md5Str);
                 if (responseBody != null) {
                     responseBody.close();
                 }
-                if (rw != null) {
-                    rw.close();
-                }
-                if (bufferedReader != null) {
-                    bufferedReader.close();
-                }
             } catch (Exception e) {
-                Log.e(TAG, e.toString());
+                Logger.e(TAG, e.toString(), e);
             }
         }
     }
@@ -144,11 +127,10 @@ public class DownLoadTask extends Thread {
         LibertyDownload.removeTask(md5Str);
     }
 
-    private boolean writeToDiskRanAc(String path, String fileName, long alreadLength, ResponseBody body, DownloadListener listener) {
-
+    private boolean writeToDiskRanAc(String path, String fileName, long alreadyDownload, long fileSize, ResponseBody body, DownloadListener listener) {
+        boolean isRecordBreakpoint = true;
         BufferedInputStream bis = null;
         RandomAccessFile rw = null;
-        BufferedWriter bufferedWriter = null;
         try {
             boolean isNew = false;
             File fileDir = new File(path);
@@ -156,42 +138,47 @@ public class DownLoadTask extends Thread {
                 fileDir.mkdirs();
             }
             File file = new File(fileDir, fileName);
-            long alreadyDownload = 0;
-            if (!(alreadLength > 0)) {
+            if (!(alreadyDownload > 0)) {
                 isNew = true;
             }
-            long fileSize = body.contentLength();
             byte[] buff = new byte[1024];
-            int readLen = 0;
+            int readLen;
             bis = new BufferedInputStream(body.byteStream());
             rw = new RandomAccessFile(file, "rw");
             if (isNew) {
                 rw.seek(0);
+                rw.setLength(fileSize);
             } else {
-                rw.seek(alreadLength);
+                rw.seek(alreadyDownload);
             }
-            File lengthFile = new File(path, md5Str + ".txt");
-            bufferedWriter = new BufferedWriter(new FileWriter(lengthFile, false));
             while (isDownload.get() && (readLen = bis.read(buff)) != -1) {
                 rw.write(buff, 0, readLen);
                 alreadyDownload += readLen;
-                bufferedWriter.write(alreadyDownload + "");
-                bufferedWriter.flush();
                 if (listener != null) {
                     listener.updateProgress(alreadyDownload, fileSize);
                 }
+                Logger.d(TAG, "下载进度:" + alreadyDownload + "/" + fileSize);
             }
             if (listener != null) {
                 listener.updateProgress(alreadyDownload, fileSize);
             }
-            if (lengthFile != null) {
-                lengthFile.delete();
-            }
+            isRecordBreakpoint = false;
             return true;
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
             try {
+                BufferedWriter bufferedWriter = null;
+                File lengthFile = new File(path, md5Str + ".txt");
+                if (isRecordBreakpoint) {
+                    Logger.d(TAG, "记录下载进度!" + alreadyDownload);
+                    bufferedWriter = new BufferedWriter(new FileWriter(lengthFile, false));
+                    bufferedWriter.write(alreadyDownload + "");
+                    bufferedWriter.flush();
+                } else if (lengthFile.exists()) {
+                    Logger.d(TAG, "删除文件下载断点记录文件！");
+                    lengthFile.delete();
+                }
                 if (body != null) {
                     body.close();
                 }
@@ -210,4 +197,41 @@ public class DownLoadTask extends Thread {
         }
         return false;
     }
+
+    private long readDownloadedLength(File lengthFile) {
+        if (lengthFile.exists()) {
+            BufferedReader bufferedReader = null;
+            try {
+                bufferedReader = new BufferedReader(new FileReader(lengthFile));
+                String readLine = bufferedReader.readLine();
+                if (!TextUtils.isEmpty(readLine)) {
+                    return Long.parseLong(readLine);
+                }
+            } catch (Exception e) {
+                Logger.e(TAG, "读取已下载进度出错!");
+                return 0L;
+            } finally {
+                if (bufferedReader != null) {
+                    try {
+                        bufferedReader.close();
+                    } catch (IOException e) {
+                        Logger.e(TAG, e.toString());
+                    }
+                }
+            }
+        }
+
+        return 0L;
+    }
+
+    private boolean delFile(File file) {
+        if (file.exists()) {
+            boolean result = file.delete();
+            if (!result) {
+                return file.delete();
+            }
+        }
+        return true;
+    }
+
 }

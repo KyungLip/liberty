@@ -12,6 +12,7 @@ import retrofit2.http.FormUrlEncoded;
 import retrofit2.http.GET;
 import retrofit2.http.Header;
 import retrofit2.http.HeaderMap;
+import retrofit2.http.Headers;
 import retrofit2.http.Multipart;
 import retrofit2.http.POST;
 import retrofit2.http.Part;
@@ -46,7 +47,7 @@ public interface ApiService {
 
     @Streaming
     @GET
-    Call<ResponseBody> downBigFile(@Header("range") String range, @Url String url);
+    Call<ResponseBody> downBigFile(@Header("Range") String range, @Url String url);
 
     @POST
     Call<ResponseBody> buildBodyPostCall(@Url String url, @Body RequestBody body);
@@ -66,5 +67,11 @@ public interface ApiService {
     @Multipart
     @POST
     Call<ResponseBody> uploadFiles(@Url String url, @PartMap Map<String, RequestBody> maps);
+
+    @POST
+    Call<ResponseBody> postWithHeaderEncoding(@Url String url, @Header("Encoding-Type") String type, @Body RequestBody body);
+
+    @POST
+    Call<ResponseBody> postWithHeader(@Url String url, @HeaderMap Map<String, String> map, @Body RequestBody body);
 
 }

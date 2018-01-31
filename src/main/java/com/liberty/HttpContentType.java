@@ -11,10 +11,14 @@ public class HttpContentType {
     /**
      * 支持JSON
      */
-    public static final String CONTENT_TYPE_APPLICATION_JSON = "Content-Type,pplication/json;charset=utf-8";
+    public static final String CONTENT_TYPE_APPLICATION_JSON = "Content-Type,application/json;charset=utf-8";
     /**
      * 支持文件数据传递
      */
     public static final String CONTENT_TYPE_APPLICATION_MULTIPART_FORMDATA = "Content-Type,multipart/form-data";
+    /**
+     * 支持字节流
+     */
+    public static final String CONTENT_TYPE_APPLICATION_BYTES = "Content-Type,text/html";
 
 }
